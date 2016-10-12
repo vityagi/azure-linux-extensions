@@ -133,8 +133,8 @@ def snapshot():
             if(freeze_result is not None and len(freeze_result.errors) > 0): 
                 run_result = CommonVariables.error 
                 run_status = 'error' 
-            	error_msg = 'T:S Enable failed with error: ' + str(freeze_result) 
-            	backup_logger.log(error_msg, False, 'Warning') 
+                error_msg = 'T:S Enable failed with error: ' + str(freeze_result) 
+                backup_logger.log(error_msg, False, 'Warning') 
 
         if (run_result == CommonVariables.success): 
             backup_logger.log('T:S doing snapshot now...') 
