@@ -68,8 +68,6 @@ def main():
     MyPatching = GetMyPatching(logger = backup_logger)
     hutil.patching = MyPatching
 
-    sleep(1)    
-
     for a in sys.argv[1:]:
         if re.match("^([-/]*)(disable)", a):
             disable()
@@ -126,16 +124,19 @@ def snapshot():
     try: 
         global backup_logger,run_result,run_status,error_msg,freezer,freeze_result,snapshot_result,snapshot_done,para_parser,g_fsfreeze_on
         
-        if (g_fsfreeze_on=="True"):
+        run_result = CommonVariables.success
+        run_status = 'success'
+
+        if (g_fsfreeze_on == True):
             freeze_result = freezer.freezeall() 
             backup_logger.log('T:S freeze result ' + str(freeze_result)) 
+            if(freeze_result is not None and len(freeze_result.errors) > 0): 
+                run_result = CommonVariables.error 
+                run_status = 'error' 
+            	error_msg = 'T:S Enable failed with error: ' + str(freeze_result) 
+            	backup_logger.log(error_msg, False, 'Warning') 
 
-        if(freeze_result is not None and len(freeze_result.errors) > 0): 
-            run_result = CommonVariables.error 
-            run_status = 'error' 
-            error_msg = 'T:S Enable failed with error: ' + str(freeze_result) 
-            backup_logger.log(error_msg, False, 'Warning') 
-        else: 
+        if (run_result == CommonVariables.success): 
             backup_logger.log('T:S doing snapshot now...') 
             snap_shotter = Snapshotter(backup_logger) 
             snapshot_result = snap_shotter.snapshotall(para_parser) 
@@ -145,11 +146,10 @@ def snapshot():
                 run_result = CommonVariables.error 
                 run_status = 'error' 
                 backup_logger.log(error_msg, False, 'Error') 
-            else: 
-                run_result = CommonVariables.success 
-                run_status = 'success' 
-                error_msg = 'Enable Succeeded' 
-                backup_logger.log("T:S " + error_msg) 
+
+        if (run_result == CommonVariables.success):
+            error_msg = 'Enable Succeeded'
+            backup_logger.log("T:S " + error_msg)
     except Exception as e: 
         errMsg = 'Failed to do the snapshot with error: %s, stack trace: %s' % (str(e), traceback.format_exc()) 
         backup_logger.log(errMsg, False, 'Error') 
@@ -170,7 +170,7 @@ def freeze_snapshot(timeout):
         time_taken=end_time-start_time
         backup_logger.log('total time taken..' + str(time_taken))
     
-        if (g_fsfreeze_on=="True"):
+        if (g_fsfreeze_on == True):
             for i in range(0,3):
                 unfreeze_result = freezer.unfreezeall()
                 backup_logger.log('unfreeze result ' + str(unfreeze_result))
@@ -193,16 +193,19 @@ def safe_freeze_snapshot(timeout):
     try:
         global backup_logger,run_result,run_status,error_msg,freezer,freeze_result,para_parser
         
-        if (g_fsfreeze_on=="True"):
+        run_result = CommonVariables.success
+        run_status = 'success'
+
+        if (g_fsfreeze_on == True):
             freeze_result = freezer.freeze_safe(timeout)
             backup_logger.log('T:S freeze result ' + str(freeze_result))
+            if(freeze_result is not None and len(freeze_result.errors) > 0):
+                run_result = CommonVariables.error
+                run_status = 'error'
+                error_msg = 'T:S Enable failed with error: ' + str(freeze_result)
+                backup_logger.log(error_msg, True, 'Warning')
 
-        if(freeze_result is not None and len(freeze_result.errors) > 0):
-            run_result = CommonVariables.error
-            run_status = 'error'
-            error_msg = 'T:S Enable failed with error: ' + str(freeze_result)
-            backup_logger.log(error_msg, True, 'Warning')
-        else:
+        if (run_result == CommonVariables.success):
             backup_logger.log('T:S doing snapshot now...')
             snap_shotter = Snapshotter(backup_logger)
             snapshot_result = snap_shotter.snapshotall(para_parser)
@@ -212,20 +215,19 @@ def safe_freeze_snapshot(timeout):
                 run_result = CommonVariables.error
                 run_status = 'error'
                 backup_logger.log(error_msg, False, 'Error')
-            else:
-                if (g_fsfreeze_on=="True"):
-                    thaw_result=freezer.thaw_safe()
-                    backup_logger.log('T:S thaw result ' + str(thaw_result))
-                if(thaw_result is not None and len(thaw_result.errors) > 0):
-                    run_result = CommonVariables.error
-                    run_status = 'error'
-                    error_msg = 'T:S Enable failed with error: ' + str(thaw_result)
-                    backup_logger.log(error_msg, True, 'Warning')
-                else:   
-                    run_result = CommonVariables.success
-                    run_status = 'success'
-                    error_msg = 'Enable Succeeded'
-                    backup_logger.log("T:S " + error_msg)
+               
+        if (g_fsfreeze_on == True):
+            thaw_result=freezer.thaw_safe()
+            backup_logger.log('T:S thaw result ' + str(thaw_result))
+            if(thaw_result is not None and len(thaw_result.errors) > 0):
+                run_result = CommonVariables.error
+                run_status = 'error'
+                error_msg = 'T:S Enable failed with error: ' + str(thaw_result)
+                backup_logger.log(error_msg, True, 'Warning')
+
+        if (run_result == CommonVariables.success):
+            error_msg = 'Enable Succeeded'
+            backup_logger.log("T:S " + error_msg)
     except Exception as e:
         errMsg = 'Failed to do the snapshot with error: %s, stack trace: %s' % (str(e), traceback.format_exc())
         backup_logger.log(errMsg, False, 'Error')
@@ -246,14 +248,18 @@ def daemon():
     thread_timeout=str(60)
     safe_freeze_on = True
     try:
+        backup_logger.log(" configfile " + str(configfile), True)
         config = ConfigParser.ConfigParser()
         config.read(configfile)
-        thread_timeout= config.get('SnapshotThread','timeout')
-        g_fsfreeze_on = config.get('SnapshotThread','fsfreeze')
-        safe_freeze_on=config.get('SnapshotThread','safefreeze')
-    except Exception as e:
-        errMsg='cannot read config file or file not present'
-        backup_logger.log(errMsg, False, 'Warning')
+        if (config.has_option('SnapshotThread','timeout')):
+            thread_timeout = config.get('SnapshotThread','timeout')
+        if (config.has_option('SnapshotThread','fsfreeze')):
+            g_fsfreeze_on = config.getboolean('SnapshotThread','fsfreeze')
+        if (config.has_option('SnapshotThread','safefreeze')):
+            safe_freeze_on = config.getboolean('SnapshotThread','safefreeze')
+    except Exception as ex:
+        errMsg='cannot read config file or file not present, ex: '+str(ex)
+        backup_logger.log(errMsg, True, 'Warning')
     backup_logger.log("final thread timeout" + thread_timeout, True)
     backup_logger.log(" fsfreeze flag " + str(g_fsfreeze_on), True)
     backup_logger.log(" safe freeze flag " + str(safe_freeze_on), True)
@@ -406,7 +412,7 @@ def enable():
             utcNow = datetime.datetime.utcnow()
             backup_logger.log('command start time is ' + str(commandStartTime) + " and utcNow is " + str(utcNow), True)
             timespan = utcNow - commandStartTime
-            THIRTY_MINUTES = 3000 * 60 # in seconds
+            THIRTY_MINUTES = 30 * 60 # in seconds
             # handle the machine identity for the restoration scenario.
             total_span_in_seconds = timedelta_total_seconds(timespan)
             backup_logger.log('timespan is ' + str(timespan) + ' ' + str(total_span_in_seconds))

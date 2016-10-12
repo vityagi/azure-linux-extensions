@@ -69,17 +69,23 @@ class PluginHost(object):
 
             # Imports all plugin modules using the information in config.json
             # and initializes basic class variables associated with each plugin
-
+        len = 0
 
         try:
+            self.logger.log('config file: '+str(self.configLocation),True,'Info')
             config = ConfigParser.ConfigParser()
             config.read(self.configLocation)
+            if (config.has_option('pre_post', 'timeout')):
+                self.timeout = int(config.get('pre_post','timeout'))
+            if (config.has_option('pre_post', 'numberOfPlugins')):
+                len = int(config.get('pre_post','numberOfPlugins'))
         except Exception as err:
             self.logger.log('Error in reading PluginHost config file. '+str(err),True,'Error')
             return
-        self.logger.log('config file: '+str(self.configLocation),True,'Info')
-        self.timeout = int(config.get('pre_post','timeout'))
-        len = int(config.get('pre_post','numberOfPlugins'))
+        
+        self.logger.log('timeout: '+str(self.timeout),True,'Info')
+        self.logger.log('numberOfPlugins: '+str(len),True,'Info')
+        
         while self.noOfPlugins < len:
             pname = config.get('pre_post','pluginName'+str(self.noOfPlugins))
             ppath = config.get('pre_post','pluginPath'+str(self.noOfPlugins))
