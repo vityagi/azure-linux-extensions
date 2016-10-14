@@ -6,6 +6,6 @@
 	"postScriptLocation" : "/etc/azure/postScript.sh",
 	"preScriptNoOfRetries" : 0,
 	"postScriptNoOfRetries" : 0,
-	"preScriptParams" : ["preparam1", "preParam2"],
-	"postScriptParams" : ["postparam1", "postParam2"]
+	"preScriptParams" : ["CACHE", "preParam2"],
+	"postScriptParams" : ["CACHE", "postParam2"]
 }
