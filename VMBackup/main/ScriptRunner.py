@@ -66,6 +66,8 @@ class ScriptRunner(object):
         self.postScriptNoOfRetries = 0
         self.configLoaded = False
         self.get_config()
+        self.pollTotalCount = (self.timeout / self.pollSleepTime)
+        self.logger.log('Plugin:'+str(self.pluginName)+' timeout:'+str(self.timeout)+' pollTotalCount:'+str(self.pollTotalCount), True, 'Info')
 
     def get_config(self):
         """
