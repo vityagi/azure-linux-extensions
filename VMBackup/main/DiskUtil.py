@@ -94,8 +94,6 @@ class DiskUtil(object):
         else:
             self.logger.log("getting the blk info from " + str(dev_path), True)
             device_items = []
-            device_items1 = []
-            device_item_names = []
             try:
                 if(dev_path is None):
                     p = Popen([self.patching.lsblk_path, '-b', '-n','-P','-o','NAME,TYPE,FSTYPE,MOUNTPOINT,LABEL,UUID,MODEL,SIZE'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
