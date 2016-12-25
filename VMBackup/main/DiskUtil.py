@@ -48,7 +48,7 @@ class DiskUtil(object):
         return None
 
     def get_device_items_sles(self,dev_path):
-        self.logger.log(msg=("getting the blk info from " + str(dev_path)))
+        self.logger.log("getting the blk info from " + str(dev_path), True)
         device_items = []
         #first get all the device names
         if(dev_path is None):
@@ -79,12 +79,12 @@ class DiskUtil(object):
                 with open(model_file_path,'r') as f:
                     device_item.model = f.read().strip()
             if(device_item.model == 'Virtual Disk'):
-                self.logger.log(msg="model is virtual disk")
+                self.logger.log("model is virtual disk", True)
                 device_item.type = 'disk'
             if(device_item.type != 'disk'):
                 partition_files = glob.glob('/sys/block/*/' + device_item.name + '/partition')
                 if(partition_files is not None and len(partition_files) > 0):
-                    self.logger.log(msg="partition files exists")
+                    self.logger.log("partition files exists", True)
                     device_item.type = 'part'
         return device_items
 
@@ -92,8 +92,10 @@ class DiskUtil(object):
         if(self.patching.distro_info[0].lower() == 'suse' and self.patching.distro_info[1] == '11'):
             return self.get_device_items_sles(dev_path)
         else:
-            self.logger.log(msg=("getting the blk info from " + str(dev_path)))
+            self.logger.log("getting the blk info from " + str(dev_path), True)
             device_items = []
+            device_items1 = []
+            device_item_names = []
             try:
                 if(dev_path is None):
                     p = Popen([self.patching.lsblk_path, '-b', '-n','-P','-o','NAME,TYPE,FSTYPE,MOUNTPOINT,LABEL,UUID,MODEL,SIZE'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -102,13 +104,13 @@ class DiskUtil(object):
             except Exception as e:
                 if(self.patching.distro_info[0].lower() == 'centos' or self.patching.distro_info[0].lower() == 'redhat'):
                     if self.patching.usr_flag == 1:
-                        self.logger.log("lsblk path is wrong.removing /usr prefix", False, 'Warning')
+                        self.logger.log("lsblk path is wrong.removing /usr prefix", True, 'Warning')
                         if(dev_path is None):
                             p = Popen(["/bin/lsblk", '-b', '-n','-P','-o','NAME,TYPE,FSTYPE,MOUNTPOINT,LABEL,UUID,MODEL,SIZE'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                         else:
                             p = Popen(["/bin/lsblk", '-b', '-n','-P','-o','NAME,TYPE,FSTYPE,MOUNTPOINT,LABEL,UUID,MODEL,SIZE',dev_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     else:
-                        self.logger.log("lsblk path is wrong.Adding /usr prefix", False, 'Warning')
+                        self.logger.log("lsblk path is wrong.Adding /usr prefix", True, 'Warning')
                         if(dev_path is None):
                             p = Popen(["usr/bin/lsblk", '-b', '-n','-P','-o','NAME,TYPE,FSTYPE,MOUNTPOINT,LABEL,UUID,MODEL,SIZE'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                         else:
@@ -120,7 +122,7 @@ class DiskUtil(object):
             out_lsblk_output = str(out_lsblk_output)
             error_msg = str(err)
             if(error_msg is not None and error_msg.strip() != ""):
-                self.logger.log(msg=str(err))
+                self.logger.log(str(err), True)
             lines = out_lsblk_output.splitlines()
             for i in range(0,len(lines)):
                 item_value_str = lines[i].strip()
@@ -152,6 +154,51 @@ class DiskUtil(object):
 
                         if(property_item_pair[0] == 'MODEL'):
                             device_item.model = property_item_pair[1].strip('"')
-
+                    self.logger.log("lsblk command mount :" + str(device_item.mount_point) + ":", True)
                     device_items.append(device_item)
             return device_items
+
+    def get_mount_points(self, dev_path):
+        self.logger.log("getting the mount-points info using mount command from " + str(dev_path), True)
+        mount_points = []
+        try:
+            if(dev_path is None):
+                p = Popen([self.patching.mount_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            else:
+                p = Popen([self.patching.mount_path,dev_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except Exception as e:
+            if(self.patching.distro_info[0].lower() == 'centos' or self.patching.distro_info[0].lower() == 'redhat'):
+                if self.patching.usr_flag == 1:
+                    self.logger.log("mount path is wrong.removing /usr prefix", True, 'Warning')
+                    if(dev_path is None):
+                        p = Popen(["/bin/mount"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    else:
+                        p = Popen(["/bin/mount", dev_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                else:
+                    self.logger.log("mount path is wrong.Adding /usr prefix", True, 'Warning')
+                    if(dev_path is None):
+                        p = Popen(["usr/bin/mount"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    else:
+                        p = Popen(["usr/bin/mount",dev_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            else:
+                raise Exception("mount path is wrong")
+        out_mount_output, err = p.communicate()
+        out_mount_output = str(out_mount_output)
+        error_msg = str(err)
+        if(error_msg is not None and error_msg.strip() != ""):
+            self.logger.log(str(err), True)
+        lines = out_mount_output.splitlines()
+        for i in range(0, len(lines)):
+            item_value_str = lines[i].strip()
+            if(item_value_str != ""):
+                mountPrefixStr = " on /"
+                prefixIndex = item_value_str.find(mountPrefixStr)
+                if(prefixIndex >= 0):
+                    mountpointStart = prefixIndex + len(mountPrefixStr) - 1
+                    mountpointEnd = item_value_str.find(" ", mountpointStart)
+                    if(mountpointEnd >= 0):
+                        mount_point = item_value_str[mountpointStart:mountpointEnd]
+                        self.logger.log("mount command mount :" + str(mount_point) + ":", True)
+                        mount_points.append(mount_point)
+        return mount_points
+
