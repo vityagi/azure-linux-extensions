@@ -157,6 +157,7 @@ class DiskUtil(object):
             return device_items
 
     def get_mount_points(self, dev_path):
+        # Get the output on the mount command
         self.logger.log("getting the mount-points info using mount command from " + str(dev_path), True)
         mount_points = []
         try:
@@ -185,6 +186,7 @@ class DiskUtil(object):
         error_msg = str(err)
         if(error_msg is not None and error_msg.strip() != ""):
             self.logger.log(str(err), True)
+        #Extract the list of mnt_point in order
         lines = out_mount_output.splitlines()
         for i in range(0, len(lines)):
             item_value_str = lines[i].strip()
@@ -196,7 +198,9 @@ class DiskUtil(object):
                     mountpointEnd = item_value_str.find(" ", mountpointStart)
                     if(mountpointEnd >= 0):
                         mount_point = item_value_str[mountpointStart:mountpointEnd]
-                        self.logger.log("mount command mount :" + str(mount_point) + ":", True)
-                        mount_points.append(mount_point)
+                        # If there is a duplicate, keep only the first instance
+                        if(mount_point not in mount_points):
+                            self.logger.log("mount command mount :" + str(mount_point) + ":", True)
+                            mount_points.append(mount_point)
         return mount_points
 

@@ -86,6 +86,7 @@ class FsFreezer:
         except Exception as e:
             errMsg="Failed to retrieve mount points"
             self.logger.log(errMsg,True,'Warning')
+            self.logger.log(str(e), True)
             self.mounts = None
         self.frozen_items = set()
         self.unfrozen_items = set()
