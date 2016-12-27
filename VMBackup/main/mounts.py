@@ -59,14 +59,12 @@ class Mounts:
         # Sort lsblk_mounts_not_in_mount array in ascending order
         lsblk_mounts_not_in_mount.sort()
         # Add the lsblk devices in the same order as they are returned in mount command output
-        for i in range(0, len(mount_points)):
-            mount_point = mount_points[i]
+        for mount_point in mount_points:
             if((mount_point in lsblk_mount_points) and (mount_point not in added_mount_point_names)):
                 self.mounts.append(lsblk_mounts[lsblk_mount_points.index(mount_point)])
                 added_mount_point_names.append(mount_point)
         # Append all the lsblk devices corresponding to lsblk_mounts_not_in_mount list mount-points
-        for i in range(0, len(lsblk_mounts_not_in_mount)):
-            mount_point = lsblk_mounts_not_in_mount[i]
+        for mount_point in lsblk_mounts_not_in_mount:
             if((mount_point in lsblk_mount_points) and (mount_point not in added_mount_point_names)):
                 self.mounts.append(lsblk_mounts[lsblk_mount_points.index(mount_point)])
                 added_mount_point_names.append(mount_point)

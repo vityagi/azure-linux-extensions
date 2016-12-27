@@ -188,16 +188,16 @@ class DiskUtil(object):
             self.logger.log(str(err), True)
         #Extract the list of mnt_point in order
         lines = out_mount_output.splitlines()
-        for i in range(0, len(lines)):
-            item_value_str = lines[i].strip()
-            if(item_value_str != ""):
+        for line in lines:
+            line = line.strip()
+            if(line != ""):
                 mountPrefixStr = " on /"
-                prefixIndex = item_value_str.find(mountPrefixStr)
+                prefixIndex = line.find(mountPrefixStr)
                 if(prefixIndex >= 0):
                     mountpointStart = prefixIndex + len(mountPrefixStr) - 1
-                    mountpointEnd = item_value_str.find(" ", mountpointStart)
+                    mountpointEnd = line.find(" type ", mountpointStart)
                     if(mountpointEnd >= 0):
-                        mount_point = item_value_str[mountpointStart:mountpointEnd]
+                        mount_point = line[mountpointStart:mountpointEnd]
                         # If there is a duplicate, keep only the first instance
                         if(mount_point not in mount_points):
                             self.logger.log("mount command mount :" + str(mount_point) + ":", True)
